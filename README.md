@@ -1,0 +1,2 @@
+# tribbb
+Reverse text index
