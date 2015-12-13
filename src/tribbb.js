@@ -1,5 +1,5 @@
 /*
- js-text-index. a reverse text index for JS documents.
+ Tribbb. A reverse text index for JS documents.
 
  documents are JS objects with arbitrary fields. an instance of the indexer is configured with the ids of the
  fields to index.
