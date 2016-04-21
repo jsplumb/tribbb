@@ -17,6 +17,11 @@
   },
   "homepage": "https://github.com/jsplumb/tribbb#readme",
   "devDependencies": {
+    "grunt": "^1.0.1",
+    "grunt-cli": "^1.2.0",
+    "grunt-contrib-jshint": "^1.0.0",
+    "grunt-contrib-qunit": "^1.2.0",
+    "grunt-init": "^0.3.2",
     "qunit": "^0.7.7"
   }
 }

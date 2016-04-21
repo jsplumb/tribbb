@@ -34,8 +34,7 @@
 
 
  */
-;
-(function () {
+;(function () {
 
     "use strict";
 
@@ -46,30 +45,37 @@
     };
 
     var applyCaseSensitivity = function (token, caseSensitive) {
-        if (caseSensitive)
+        if (caseSensitive) {
             return token;
-        else
+        }
+        else {
             return token.toLowerCase();
+        }
     };
 
     var fastTrim = function (s) {
         var str = s.replace(/^\s\s*/, ''),
             ws = /\s/,
             i = str.length;
-        while (ws.test(str.charAt(--i)));
+
+
+        while (ws.test(str.charAt(--i))) { }
+
         return str.slice(0, i + 1);
     };
 
     // default tokenizer splits by whitespace, and then removes non-word characters from each token,
     // making each token lower case. it also adds a copy of the entire string with whitespace replaced by underscores.
     var defaultTokenizer = exports.Tribbb.Tokenizers.WhitespaceTokenizer = function (value) {
-        value = new String(value);
+        value = "" + value;
         var spacesReplaced = value.replace(/\s/g, "_"),
             parts = value.split(/\s/), out = [ spacesReplaced ];
 
         for (var i = 0; i < parts.length; i++) {
             var s = fastTrim(parts[i].replace(/[^\w]*/, ""));
-            if (s.length > 0) out.push(s);
+            if (s.length > 0) {
+                out.push(s);
+            }
         }
 
         return out;
@@ -91,8 +97,8 @@
         return (a.score > b.score) ? -1 : 1;
     };
 
-    var ListInsert = function (list, value, compare) {
-        if (list.length == 0) {
+    var listInsert = function (list, value, compare) {
+        if (list.length === 0) {
             list.push(value);
             return;
         }
@@ -102,20 +108,20 @@
                 comp = compare(val, value),
                 comp2;
 
-            if (comp == 0) {
+            if (comp === 0) {
                 list.splice(idx, 0, value);
                 return;
             }
-            else if (comp == -1) {
+            else if (comp === -1) {
                 // list value is less than value to insert.
                 // if value is the last value, push to end and return.
-                if (idx == list.length - 1) {
+                if (idx === list.length - 1) {
                     list.push(value);
                     return;
                 }
                 else {
                     comp2 = compare(list[idx + 1], value);
-                    if (comp2 != comp) {
+                    if (comp2 !== comp) {
                         list.splice(idx + 1, 0, value);
                         return;
                     }
@@ -125,13 +131,13 @@
             else {
                 // list value is greater than value to insert.
                 // if idx was zero, push value to head and return
-                if (idx == 0) {
+                if (idx === 0) {
                     list.unshift(value);
                     return;
                 }
                 else {
                     comp2 = compare(list[idx - 1], value);
-                    if (comp2 != comp) {
+                    if (comp2 !== comp) {
                         list.splice(idx, 0, value);
                         return;
                     }
@@ -187,21 +193,33 @@
             self = this;
 
         // helper method to store a node reference for some document
-        var storeNodeReferenceForDocument = function (docId, node) {
+        function _storeNodeReferenceForDocument(docId, node) {
             var nodes = nodeMap[docId];
             if (!nodes) {
                 nodes = {};
                 nodeMap[docId] = nodes;
             }
             nodes[node.index] = node;
-        };
+        }
+
+        // pick a suitable sort function.
+        function  _chooseSorter() {
+            return params.sort ? params.sort : exports.Tribbb.Sorters.ByScoreSorter;
+        }
+
+        // helper to sort a list of docs.
+        function _sortDocs(docs) {
+            docs.sort(_chooseSorter());
+        }
 
         // add a token to the index.
         var _addToken = function (token, docId) {
 
             var _oneLevel = function (node, idx, token, docId) {
                 // if at the end of the token, we are done.
-                if (idx == token.length) return;
+                if (idx === token.length) {
+                    return;
+                }
                 // otherwise, get the char for this index
                 var c = token[idx],
                 // see if this node already has a child for that char
@@ -214,7 +232,7 @@
                 // add this doc id to the list for this node, since we have traversed through it.
                 child.documentIds[docId] = true;
                 // store a reference to this node in the docId->node map.
-                storeNodeReferenceForDocument(docId, child);
+                _storeNodeReferenceForDocument(docId, child);
                 _oneLevel(child, idx + 1, token, docId);
             };
 
@@ -226,7 +244,7 @@
             var _a = function (doc) {
 
                 // add to list
-                ListInsert(documentList, {document: doc, score: 1}, _chooseSorter());
+                listInsert(documentList, {document: doc, score: 1}, _chooseSorter());
 
                 var docId = idFunction(doc),
                 // two ways of looping: if field ids provided, use them. otherwise loop through all fields in document.
@@ -239,7 +257,9 @@
                         },
                         "document": function (f) {
                             for (var i in doc) {
-                                if (i !== "id") f(doc[i]);
+                                if (i !== "id") {
+                                    f(doc[i]);
+                                }
                             }
                         }
                     };
@@ -249,21 +269,25 @@
                 _loopers[fields ? "fields" : "document"](function (v) {
                     if (v) {
                         var tokens = tokenizer(v);
-                        for (var j = 0; j < tokens.length; j++)
+                        for (var j = 0; j < tokens.length; j++) {
                             _addToken(applyCaseSensitivity(tokens[j], caseSensitive), docId);
+                        }
                     }
                 });
 
                 documentCount++;
             };
-            if (doc.constructor == Array) {
-                for (var i = 0; i < doc.length; i++)
+            if (doc.constructor === Array) {
+                for (var i = 0; i < doc.length; i++) {
                     _a(doc[i]);
+                }
             }
-            else _a(doc);
+            else {
+                _a(doc);
+            }
         };
 
-        this.addAll = function (docs__) {
+        this.addAll = function () {
             for (var i = 0; i < arguments.length; i++) {
                 this.add(arguments[i]);
             }
@@ -302,7 +326,7 @@
                     break;
                 }
             }
-            if (idx != -1) {
+            if (idx !== -1) {
                 documentList.splice(idx, 1);
                 documentCount = documentList.length;
             }
@@ -332,15 +356,6 @@
             return documentMap[id];
         };
 
-        // pick a suitable sort function.
-        var _chooseSorter = function () {
-            return params.sort ? params.sort : exports.Tribbb.Sorters.ByScoreSorter;
-        };
-        // helper to sort a list of docs.
-        var _sortDocs = function (docs) {
-            docs.sort(_chooseSorter());
-        };
-
         // search the index
         this.search = function (q) {
             var tokens = searchTokenizer(q),
@@ -358,10 +373,11 @@
                     }
                 },
                 _oneToken = function (node, idx, token) {
-                    if (idx == token.length) {
+                    if (idx === token.length) {
                         for (var i in node.documentIds) {
-                            if (node.documentIds.hasOwnProperty(i))
+                            if (node.documentIds.hasOwnProperty(i)) {
                                 hit(i, token);
+                            }
                         }
                         return;
                     }
@@ -378,8 +394,9 @@
             }
 
             // retrieve the documents.
-            for (var j in idMap)
+            for (var j in idMap){
                 docs.unshift({document: documentMap[j], score: scores[j]});
+            }
 
             _sortDocs(docs);
             return docs.slice(0, limit);

@@ -14,4 +14,4 @@
         equal(docs.length, 10, "10 docs found");
     });
 
-}).call(this);
+}).call(typeof window === "undefined" ? this : window);
