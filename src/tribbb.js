@@ -37,6 +37,8 @@
 ;
 (function () {
 
+    "use strict";
+
     var exports = this;
     exports.Tribbb = {
         Tokenizers: {},
@@ -389,4 +391,4 @@
             }
         }
     };
-}).call(this);
+}).call(typeof window === "undefined" ? this : window);
