@@ -1,11 +1,11 @@
 {
   "name": "tribbb",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
-  "main": "src/tribbb.js",
+  "main": "dist/tribbb.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm run clean && rollup --config",
+    "test": "jest",
+    "build": "npm run clean && rollup --config && npm test",
     "clean": "rm -rf ./dist && mkdir dist",
     "lint": "tslint -c tslint.json \"src/**/*.ts\""
   },
@@ -20,16 +20,49 @@
   },
   "homepage": "https://github.com/jsplumb/tribbb#readme",
   "devDependencies": {
-    "grunt": "^1.0.1",
-    "grunt-cli": "^1.2.0",
-    "grunt-contrib-jshint": "^1.0.0",
-    "grunt-contrib-qunit": "^1.2.0",
-    "grunt-init": "^0.3.2",
-    "qunit": "^0.7.7",
+    "@types/jest": "^22.2.3",
+    "jest": "^22.4.3",
     "rollup": "^0.58.2",
     "rollup-plugin-typescript2": "^0.13.0",
+    "ts-jest": "^22.4.4",
     "tslint": "^5.9.1",
     "tslint-eslint-rules": "^5.1.0",
     "typescript": "^2.8.3"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!shiva/)"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "tsconfig.json"
+      },
+      "google": {}
+    },
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.schema.ts",
+      "!src/schema/*.ts"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/?(*.)test.ts",
+      "<rootDir>/test/**/?(*.)test.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 0,
+        "functions": 0,
+        "lines": 0,
+        "statements": 0
+      }
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
+    "transform": {
+      "\\.(ts)$": "<rootDir>/node_modules/ts-jest/preprocessor.js",
+      "^.+\\.js$": "babel-jest"
+    }
   }
 }
