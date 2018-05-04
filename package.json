@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/tribbb.js",
+  "files":[
+    "dist/index.d.ts",
+    "dist/tribbb.js"
+  ],
+  "types":"dist/index",
   "scripts": {
     "test": "jest",
     "build": "npm run clean && rollup --config && npm test && npm run types",
