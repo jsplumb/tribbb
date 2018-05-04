@@ -5,7 +5,7 @@
   "main": "dist/tribbb.js",
   "scripts": {
     "test": "jest",
-    "build": "npm run clean && rollup --config && npm test",
+    "build": "npm run clean && rollup --config && npm test && npm run types",
     "clean": "rm -rf ./dist && mkdir dist",
     "lint": "tslint -c tslint.json \"src/**/*.ts\"",
     "types": "./node_modules/.bin/dts-bundle-generator -o dist/index.d.ts src/tribbb.ts"
