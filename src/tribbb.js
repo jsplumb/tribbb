@@ -465,6 +465,20 @@
             }
         };
 
+        /**
+         * @method serializeJsonp
+         * @param {string} globalHandle The name of the global variable to which to assign the serialized index data.
+         * @returns {SerializedIndex} The index, serialized, in "jsonp" format, that is a global variable declaration.
+         */
+        this.serializeJsonp = function(globalHandle) {
+            var json = {
+                list:documentList,
+                root:root
+            };
+
+            return "(function() { " + globalHandle + "=" + JSON.stringify(json) + " }).call(this);";
+        };
+
         //
         // populate the node cache we use when removing documents
         var populateNodeMapFromNode = function(node) {

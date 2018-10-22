@@ -14,6 +14,67 @@
         equal(docs.length, 10, "10 docs found");
     });
 
+    test("serialize", function() {
+        var t = new Tribbb.Index({
+            fields: ["content"],
+            idFunction: function (entry) {
+                return entry.articleUrl
+            },
+            exclusions: ["content"]
+        });
+
+        var d1 = {
+            articleUrl: "foo",
+            content: "the quick brown fox",
+            categoryUrl: "shazam"
+        }, d2 = {
+            articleUrl: "baz",
+            content: "jumps over the lazy dog",
+            categoryUrl: "shazam"
+        };
+
+        t.add(d1);
+
+        t.add(d2);
+
+        var index = t.serialize();
+
+        ok(index.list != null, "list is present");
+        equal(index.list.length, 2, "2 items in list");
+
+    });
+
+    test("serializeJsonp", function() {
+        var t = new Tribbb.Index({
+            fields: ["content"],
+            idFunction: function (entry) {
+                return entry.articleUrl
+            },
+            exclusions: ["content"]
+        });
+
+        var d1 = {
+            articleUrl: "foo",
+            content: "the quick brown fox",
+            categoryUrl: "shazam"
+        }, d2 = {
+            articleUrl: "baz",
+            content: "jumps over the lazy dog",
+            categoryUrl: "shazam"
+        };
+
+        t.add(d1);
+
+        t.add(d2);
+
+        var index = t.serializeJsonp("globalIndex");
+        eval(index);
+
+        ok(globalIndex != null, "the index has been assigned to a global variable");
+        ok(globalIndex.list != null, "list is present");
+        equal(globalIndex.list.length, 2, "2 items in list");
+    });
+
 
     test("serialize/deserialise", function() {
         var t = new Tribbb.Index({
@@ -76,6 +137,49 @@
         // ---------------- remove d2 from the third index; the previous search should now return no results
         ttt.remove(d2);
         equal(ttt.search("lazy").length, 0, "0 results from index loaded via constructor for 'lazy' after doc removal");
+    });
+
+    test("serializeJsonp / deserialize", function() {
+        var t = new Tribbb.Index({
+            fields: ["content"],
+            idFunction: function (entry) {
+                return entry.articleUrl
+            },
+            exclusions: ["content"]
+        });
+
+        var d1 = {
+            articleUrl: "foo",
+            content: "the quick brown fox",
+            categoryUrl: "shazam"
+        }, d2 = {
+            articleUrl: "baz",
+            content: "jumps over the lazy dog",
+            categoryUrl: "shazam"
+        };
+
+        t.add(d1);
+        t.add(d2);
+        equal(t.search("lazy").length, 1, "1 result from original index for 'lazy'");
+
+        // serialize the index to jsonp, and then `eval` it; this has the same as if you loaded the index
+        // via a `script` tag (or indeed via jsonp)
+        var index = t.serializeJsonp("globalIndex");
+        eval(index);
+
+        ok(globalIndex != null, "the index has been assigned to a global variable");
+        ok(globalIndex.list != null, "list is present");
+        equal(globalIndex.list.length, 2, "2 items in list");
+
+        var ttt = new Tribbb.Index({
+            fields:["content"],
+            idFunction:function(entry) { return entry.articleUrl },
+            exclusions:["content"],
+            index:globalIndex
+        });
+
+        equal(ttt.search("lazy").length, 1, "1 result from index loaded via global var for 'lazy'");
+
     });
 
 }).call(typeof window === "undefined" ? this : window);

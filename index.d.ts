@@ -53,6 +53,7 @@ declare module Tribbb {
 
         serialize():SerializedIndex<T>;
         deserialize(index:SerializedIndex<T>):void;
+        serializeJsonp(globalHandle:string):string;
 
         search(term:string):Array<Hit<T>>;
 
