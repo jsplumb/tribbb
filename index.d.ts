@@ -42,7 +42,6 @@ declare module Tribbb {
         limit?:number;
         caseSensitive?:boolean;
         sort?:Sorter<T>;
-        url?:string;
         data?:Array<any>;
         index?:SerializedIndex<T>;
         onDataLoaded?:Function;

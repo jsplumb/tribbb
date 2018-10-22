@@ -190,7 +190,6 @@
      limit                      optional limit to the number of documents returned. default is 10.
      caseSensitive              optional, defaults to false.
      sort                       optional function to use for sorting a list of results.
-     url                        optional url for initial data.
      onDataLoaded               optional callback for when the data has been loaded.
      data                       optional initial data as an array of documents
      index                      optional previously serialized index
