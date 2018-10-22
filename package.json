@@ -1,6 +1,6 @@
 {
   "name": "tribbb",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "",
   "main": "src/tribbb.js",
   "scripts": {
@@ -10,6 +10,8 @@
     "type": "git",
     "url": "git+ssh://git@github.com/jsplumb/tribbb.git"
   },
+  "files":[ "src/tribbb.js", "index.d.ts"],
+  "types":"index.d.ts",
   "author": "jsPlumb <hello@jsplumbtoolkit.com> (https://jsplumbtoolkit.com)",
   "license": "Apache 2.0",
   "bugs": {

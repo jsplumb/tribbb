@@ -34,9 +34,8 @@
 
 
  */
-;(function () {
-
-    "use strict";
+;
+(function () {
 
     var exports = this;
     exports.Tribbb = {
@@ -45,46 +44,74 @@
     };
 
     var applyCaseSensitivity = function (token, caseSensitive) {
-        if (caseSensitive) {
+        if (caseSensitive)
             return token;
-        }
-        else {
+        else
             return token.toLowerCase();
-        }
     };
 
     var fastTrim = function (s) {
         var str = s.replace(/^\s\s*/, ''),
             ws = /\s/,
             i = str.length;
-
-
-        while (ws.test(str.charAt(--i))) { }
-
+        while (ws.test(str.charAt(--i)));
         return str.slice(0, i + 1);
     };
 
     // default tokenizer splits by whitespace, and then removes non-word characters from each token,
-    // making each token lower case. it also adds a copy of the entire string with whitespace replaced by underscores.
+    // making each token lower case. it also adds series' of up to three consecutive words, for instance the phrase
+    //
+    // the quick brown fox
+    //
+    // would result in these tokens being added:
+    //
+    // the
+    // the quick
+    // the quick brown
+    // quick brown fox
+    // brown fox
+    // fox
+    //
     var defaultTokenizer = exports.Tribbb.Tokenizers.WhitespaceTokenizer = function (value) {
-        value = "" + value;
-        var spacesReplaced = value.replace(/\s/g, "_"),
-            parts = value.split(/\s/), out = [ spacesReplaced ];
+        value = new String(value);
+        var parts = value.split(/\s/), out = [ ];
+
+        var queue = [], queueSize = 4;
 
         for (var i = 0; i < parts.length; i++) {
             var s = fastTrim(parts[i].replace(/[^\w]*/, ""));
             if (s.length > 0) {
                 out.push(s);
+                queue.unshift(s);
+                queue.splice(queueSize - 1);
+                if (queue.length > 1) {
+                    queue.reverse();
+                    out.push(queue.join(" "));
+                    queue.reverse();
+                }
             }
+        }
+
+        // there might be values left in queue. we snip the head value one at a time and if there's still more than one value, we write the phrase
+        queue.pop();
+
+        while(queue.length > 1) {
+            queue.reverse();
+            out.push(queue.join(" "));
+            queue.reverse();
+            queue.pop();
         }
 
         return out;
     };
 
-    // default search tokenizer replaces whitespace with underscores.
-    var defaultSearchTokenizer = exports.Tribbb.Tokenizers.WhitespaceReplacingTokenizer = function (value) {
+    exports.Tribbb.Tokenizers.WhitespaceReplacingTokenizer = function (value) {
         value = fastTrim(value);
         return [ value.replace(/\s/g, "_") ];
+    };
+
+    var defaultSearchTokenizer = exports.Tribbb.Tokenizers.DefaultTokenizer = function (value) {
+        return [ fastTrim(value) ];
     };
 
     // the default id function just looks for an 'id' member.
@@ -97,7 +124,7 @@
         return (a.score > b.score) ? -1 : 1;
     };
 
-    var listInsert = function (list, value, compare) {
+    var ListInsert = function (list, value, compare) {
         if (list.length === 0) {
             list.push(value);
             return;
@@ -155,21 +182,20 @@
 
      Params:
 
-     fields				-		array of field names to index, optional, defaults to everything.
-     tokenizer			-		function to use to tokenize field values; optional, defaults to a tokenizer
-     that splits on whitespace, and also adds a copy of the original token with all of its
-     whitespace converted to underscores.
-     searchTokenizer		-		function to use to tokenize the search input. optional. defaults to a tokenizer that
-     converts all whitespace in the search term to underscores (and which does not split
-     by whitespace...)
-     idFunction			-		optional function to use to extract an id for any given document. defaults to returning
-     the document's "id" member.
-     limit				-		optional limit to the number of documents returned. default is 10.
-     caseSensitive		-		optional, defaults to false.
-     sort 			    - 		optional function to use for sorting a list of results.
-     url 				- 		optional url for initial data.
-     onDataLoaded 		- 		optional callback for when the data has been loaded.
-
+     fields                     array of field names to index, optional, defaults to everything.
+     tokenizer                  function to use to tokenize field values; optional, defaults to a tokenizer that splits on whitespace
+     searchTokenizer            function to use to tokenize the search input. optional. defaults to a tokenizer that converts all whitespace in the search term to underscores (and which does not split
+                                by whitespace...)
+     idFunction                 optional function to use to extract an id for any given document. defaults to returning the document's "id" member.
+     limit                      optional limit to the number of documents returned. default is 10.
+     caseSensitive              optional, defaults to false.
+     sort                       optional function to use for sorting a list of results.
+     url                        optional url for initial data.
+     onDataLoaded               optional callback for when the data has been loaded.
+     data                       optional initial data as an array of documents
+     index                      optional previously serialized index
+     exclusions                 optional array of field names for fields that should be excluded from storage. Often you'll want to tokenize some field
+                                but not actually store the whole thing in the index.
      */
     exports.Tribbb.Index = function (params) {
         params = params || {};
@@ -188,41 +214,30 @@
             limit = params.limit || 10,
             caseSensitive = params.caseSensitive,
             documentCount = 0,
-        // nodeMap maps document ids to lists of nodes containing a reference to that document.
+            // nodeMap maps document ids to lists of nodes containing a reference to that document.
             nodeMap = {},
-            self = this;
+            self = this,
+            exclusions = params.exclusions || [];
 
         // helper method to store a node reference for some document
-        function _storeNodeReferenceForDocument(docId, node) {
+        var storeNodeReferenceForDocument = function (docId, node) {
             var nodes = nodeMap[docId];
             if (!nodes) {
                 nodes = {};
                 nodeMap[docId] = nodes;
             }
             nodes[node.index] = node;
-        }
-
-        // pick a suitable sort function.
-        function  _chooseSorter() {
-            return params.sort ? params.sort : exports.Tribbb.Sorters.ByScoreSorter;
-        }
-
-        // helper to sort a list of docs.
-        function _sortDocs(docs) {
-            docs.sort(_chooseSorter());
-        }
+        };
 
         // add a token to the index.
         var _addToken = function (token, docId) {
 
             var _oneLevel = function (node, idx, token, docId) {
                 // if at the end of the token, we are done.
-                if (idx === token.length) {
-                    return;
-                }
+                if (idx === token.length) return;
                 // otherwise, get the char for this index
                 var c = token[idx],
-                // see if this node already has a child for that char
+                    // see if this node already has a child for that char
                     child = node.children[c];
                 // if not, create it
                 if (!child) {
@@ -232,22 +247,34 @@
                 // add this doc id to the list for this node, since we have traversed through it.
                 child.documentIds[docId] = true;
                 // store a reference to this node in the docId->node map.
-                _storeNodeReferenceForDocument(docId, child);
+                storeNodeReferenceForDocument(docId, child);
                 _oneLevel(child, idx + 1, token, docId);
             };
 
             _oneLevel(root, 0, token, docId);
         };
 
+        var removeExclusions = function(doc) {
+            var out = {};
+            for (var k in doc) {
+                if (exclusions.indexOf(k) === -1) {
+                    out[k] = doc[k];
+                }
+            }
+            return out;
+        };
+
         // add a document
         this.add = function (doc) {
             var _a = function (doc) {
 
+                var docToWrite = removeExclusions(doc);
+
                 // add to list
-                listInsert(documentList, {document: doc, score: 1}, _chooseSorter());
+                ListInsert(documentList, {document: docToWrite, score: 1}, _chooseSorter());
 
                 var docId = idFunction(doc),
-                // two ways of looping: if field ids provided, use them. otherwise loop through all fields in document.
+                    // two ways of looping: if field ids provided, use them. otherwise loop through all fields in document.
                     _loopers = {
                         "fields": function (f) {
                             for (var i = 0; i < fields.length; i++) {
@@ -257,37 +284,32 @@
                         },
                         "document": function (f) {
                             for (var i in doc) {
-                                if (i !== "id") {
-                                    f(doc[i]);
-                                }
+                                if (i !== "id") f(doc[i]);
                             }
                         }
                     };
 
-                documentMap[docId] = doc;
+                documentMap[docId] = docToWrite;
+
                 // loop through all the fields we need to and index.
                 _loopers[fields ? "fields" : "document"](function (v) {
                     if (v) {
                         var tokens = tokenizer(v);
-                        for (var j = 0; j < tokens.length; j++) {
+                        for (var j = 0; j < tokens.length; j++)
                             _addToken(applyCaseSensitivity(tokens[j], caseSensitive), docId);
-                        }
                     }
                 });
 
                 documentCount++;
             };
             if (doc.constructor === Array) {
-                for (var i = 0; i < doc.length; i++) {
+                for (var i = 0; i < doc.length; i++)
                     _a(doc[i]);
-                }
             }
-            else {
-                _a(doc);
-            }
+            else _a(doc);
         };
 
-        this.addAll = function () {
+        this.addAll = function (docs__) {
             for (var i = 0; i < arguments.length; i++) {
                 this.add(arguments[i]);
             }
@@ -334,7 +356,10 @@
             delete documentMap[docId];
         };
 
-        // clears all documents.
+        /**
+         * @method clear
+         * clears all documents.
+         */
         this.clear = function () {
             documentMap = {};
             nodeMap = {};
@@ -344,19 +369,49 @@
             root = _makeNode();
         };
 
-        // return the number of documents in the index
+        /**
+         * @method getDocumentCount
+         * gets the number of documents in the index
+         * @returns {number}
+         */
         this.getDocumentCount = function () {
             return documentCount;
         };
-        // gets all documents, sorted according to the way search results are sorted.
+
+        /**
+         * @method getDocumentList
+         * Gets all documents, sorted according to the way search results are sorted.
+         * @returns {Array<T>}
+         */
         this.getDocumentList = function () {
             return documentList;
         };
+
+        /**
+         * @method getDocument
+         * Gets a specific document, by its id.
+         * @param {string} id ID of the document to retrieve
+         * @returns {T}
+         */
         this.getDocument = function (id) {
             return documentMap[id];
         };
 
-        // search the index
+        // pick a suitable sort function.
+        var _chooseSorter = function () {
+            return params.sort ? params.sort : exports.Tribbb.Sorters.ByScoreSorter;
+        };
+        // helper to sort a list of docs.
+        var _sortDocs = function (docs) {
+            docs.sort(_chooseSorter());
+        };
+
+        /**
+         * @method search
+         * search the index
+         * @param {string} q
+         * @returns {Array<Hit>}
+         */
         this.search = function (q) {
             var tokens = searchTokenizer(q),
                 idMap = {}, docs = [], scores = {},
@@ -375,9 +430,8 @@
                 _oneToken = function (node, idx, token) {
                     if (idx === token.length) {
                         for (var i in node.documentIds) {
-                            if (node.documentIds.hasOwnProperty(i)) {
+                            if (node.documentIds.hasOwnProperty(i))
                                 hit(i, token);
-                            }
                         }
                         return;
                     }
@@ -394,18 +448,63 @@
             }
 
             // retrieve the documents.
-            for (var j in idMap){
+            for (var j in idMap)
                 docs.unshift({document: documentMap[j], score: scores[j]});
-            }
 
             _sortDocs(docs);
             return docs.slice(0, limit);
         };
 
+        /**
+         * @method serialize
+         * @returns {SerializedIndex} The index, serialized, in a format that `deserialize` can make sense of.
+         */
+        this.serialize = function() {
+            return {
+                list:documentList,
+                root:root
+            }
+        };
+
+        //
+        // populate the node cache we use when removing documents
+        var populateNodeMapFromNode = function(node) {
+            for (var docId in node.documentIds) {
+                storeNodeReferenceForDocument(docId, node);
+            }
+
+            for (var childId in node.children) {
+                var child = node.children[childId];
+                populateNodeMapFromNode(child);
+            }
+        };
+
+        /**
+         * @method deserialize
+         * @param {SerializedIndex} d Data from a previous `serialize()` call on a Tribbb index
+         */
+        this.deserialize = function(d) {
+            documentList = d.list;
+            documentCount = documentList.length;
+
+            documentMap = {};
+            for (var i = 0; i < documentList.length; i++) {
+                documentMap[idFunction(documentList[i])] = documentList[i];
+            }
+
+            root = d.root;
+            nodeMap = {};
+            populateNodeMapFromNode(root);
+        };
+
+
         if (params.data) {
             for (var i = 0; i < params.data.length; i++) {
                 this.add(params.data[i]);
             }
+        } else if (params.index) {
+            this.deserialize(params.index);
         }
+
     };
-}).call(typeof window === "undefined" ? this : window);
+}).call(this);
