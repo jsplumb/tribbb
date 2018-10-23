@@ -411,7 +411,7 @@
          * @param {string} q
          * @returns {Array<Hit>}
          */
-        this.search = function (q) {
+        this.search = function (q, searchLimit) {
             var tokens = searchTokenizer(q),
                 idMap = {}, docs = [], scores = {},
                 hit = function (docId, token) {
@@ -451,7 +451,7 @@
                 docs.unshift({document: documentMap[j], score: scores[j]});
 
             _sortDocs(docs);
-            return docs.slice(0, limit);
+            return docs.slice(0, searchLimit == null ? limit : searchLimit);
         };
 
         /**
@@ -502,7 +502,8 @@
 
             documentMap = {};
             for (var i = 0; i < documentList.length; i++) {
-                documentMap[idFunction(documentList[i])] = documentList[i];
+                var doc = documentList[i].document;
+                documentMap[idFunction(doc)] = doc;
             }
 
             root = d.root;
