@@ -185,4 +185,35 @@
 
     });
 
+    // test("context", function() {
+    //     var t = new Tribbb.Index({
+    //         fields: ["content"],
+    //         idFunction: function (entry) {
+    //             return entry.articleUrl
+    //         },
+    //         exclusions: ["content"],
+    //         includeContext:true
+    //     });
+    //
+    //     var d1 = {
+    //         articleUrl: "foo",
+    //         content: "the quick brown fox",
+    //         categoryUrl: "shazam"
+    //     }, d2 = {
+    //         articleUrl: "baz",
+    //         content: "jumps over the lazy dog",
+    //         categoryUrl: "shazam"
+    //     };
+    //
+    //     t.add(d1);
+    //     t.add(d2);
+    //
+    //     var res = t.search("the");
+    //     equal(2, res.length, "2 results searching for 'the'");
+    //
+    //     equal(res[0].context, "the quick brown fox", "context is correct for first result");
+    //     equal(res[1].context, "over the lazy dog", "context is correct for second result");
+    //
+    // });
+
 }).call(typeof window === "undefined" ? this : window);

@@ -216,7 +216,8 @@
             // nodeMap maps document ids to lists of nodes containing a reference to that document.
             nodeMap = {},
             self = this,
-            exclusions = params.exclusions || [];
+            exclusions = params.exclusions || [],
+            includeContext = params.includeContext === true;
 
         // helper method to store a node reference for some document
         var storeNodeReferenceForDocument = function (docId, node) {
@@ -227,6 +228,19 @@
             }
             nodes[node.index] = node;
         };
+
+        //
+        // reconstruct context by joining a few tokens around some token back together. This assumes right now that
+        // the join character is a space, which may not always be the case. We may need to support the user providing this
+        // character, or even providing a 'constructContext' function of their own.
+        /*
+        var _constructContext = function(allTokens, currentTokenIndex) {
+            var startIdx = Math.max(0, currentTokenIndex - 2),
+                endIdx = Math.min(allTokens.length - 1, currentTokenIndex + 2),
+                contextTokens = allTokens.slice(startIdx, endIdx);
+
+            return contextTokens.join(" ");
+        };*/
 
         // add a token to the index.
         var _addToken = function (token, docId) {
@@ -243,8 +257,10 @@
                     child = _makeNode();
                     node.children[c] = child;
                 }
+
                 // add this doc id to the list for this node, since we have traversed through it.
                 child.documentIds[docId] = true;
+
                 // store a reference to this node in the docId->node map.
                 storeNodeReferenceForDocument(docId, child);
                 _oneLevel(child, idx + 1, token, docId);
@@ -294,8 +310,9 @@
                 _loopers[fields ? "fields" : "document"](function (v) {
                     if (v) {
                         var tokens = tokenizer(v);
-                        for (var j = 0; j < tokens.length; j++)
+                        for (var j = 0; j < tokens.length; j++) {
                             _addToken(applyCaseSensitivity(tokens[j], caseSensitive), docId);
+                        }
                     }
                 });
 
