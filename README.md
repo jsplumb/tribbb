@@ -16,3 +16,10 @@ support for serialize/deserialize of an index.
 October 23rd 2018
 
 Removed `url` from JS doc. It is not supported.
+
+
+## 0.1.2
+
+October 23rd 2018
+
+Updates to document retrieval in deserialize method.
