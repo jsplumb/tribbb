@@ -113,7 +113,9 @@
         });
 
         tt.deserialize(index);
-        equal(tt.search("lazy").length, 1, "1 result from index loaded via deserialize for 'lazy'");
+        var res = tt.search("lazy");
+        equal(res.length, 1, "1 result from index loaded via deserialize for 'lazy'");
+        equal(res[0].document.articleUrl, "baz", "the correct document was retrieved");
 
         // make a 2nd new index, passing in the serialized data to the constructor, then search it
 
@@ -132,7 +134,8 @@
 
         // ---------------- remove d2 from the second index; the previous search should now return no results
         tt.remove(d2);
-        equal(tt.search("lazy").length, 0, "0 results from index loaded via deserialize for 'lazy' after doc removal");
+        var res = tt.search("lazy");
+        equal(res.length, 0, "0 results from index loaded via deserialize for 'lazy' after doc removal");
 
         // ---------------- remove d2 from the third index; the previous search should now return no results
         ttt.remove(d2);
